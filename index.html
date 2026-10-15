@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unfold to sheets</title>
+<link rel="stylesheet" href="css/app.css?v=2026-08-28.01.99a3a101">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="mark"></span> Unfold to sheets</div>
+  <label class="btn primary">Open model<input type="file" id="file-model" accept=".stl,.obj" hidden></label>
+  <select id="sample-pick" class="btn" style="flex:0 0 auto;width:auto">
+    <option value="bunny">Sample: low-poly bunny</option>
+    <option value="dome4">Sample: 6 m geodesic dome, 4V</option>
+    <option value="dome6">Sample: 6 m geodesic dome, 6V</option>
+    <option value="dome2">Sample: 6 m geodesic dome, 2V (panels too big — see what it says)</option>
+  </select>
+  <button class="btn" id="btn-sample">Load</button>
+  <div class="spacer"></div>
+  <button class="btn" id="btn-zip" disabled>Download package (.zip)</button>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="stagetabs" id="stagetabs">
+      <button data-view="model" class="on">Model</button>
+      <button data-view="sheets">Sheets</button>
+      <button data-view="assembly">Assembly</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="readout" id="readout"></div>
+    <div class="dropzone" id="dropzone">
+      <div>
+        <strong>Drop an STL or OBJ here</strong>
+        <p class="note">Then say what its numbers mean — a file does not record units —<br>
+        pick your sheet stock, and sweep the size to find what wastes least.</p>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <nav class="tabs" id="tabs">
+      <button data-tab="setup" class="on">Setup</button>
+      <button data-tab="pieces">Pieces</button>
+      <button data-tab="seams">Seams</button>
+      <button data-tab="sweep">Scale</button>
+      <button data-tab="export">Export</button>
+    </nav>
+
+    <div class="tab on" data-tab="setup">
+      <h3>The model</h3>
+      <div id="model-stats"><p class="note">No model loaded.</p></div>
+
+      <h3>Units</h3>
+      <p class="note">An STL records no units. This is a statement, not a guess, and it
+        is printed on every output.</p>
+      <label class="row"><span>Model units</span>
+        <select id="in-units">
+          <option value="mm">millimetres</option>
+          <option value="cm">centimetres</option>
+          <option value="m">metres</option>
+          <option value="in">inches</option>
+          <option value="ft">feet</option>
+        </select></label>
+      <label class="row"><span>Scale</span>
+        <input type="number" id="in-scale" value="1" step="0.05" min="0.01"></label>
+      <label class="row"><span>Size measured</span>
+        <select id="in-axis">
+          <option value="longest">longest side</option>
+          <option value="x">X</option><option value="y">Y</option><option value="z">Z</option>
+          <option value="diagonal">diagonal</option>
+        </select></label>
+
+      <h3>Stock and material</h3>
+      <label class="row"><span>Sheet</span><select id="in-stock"></select></label>
+      <label class="row"><span>Material</span><select id="in-material"></select></label>
+      <p class="note" id="stock-note"></p>
+
+      <h3>Where the seams go</h3>
+      <p class="note">A crease is a fold if the material bends and a cut if it does not —
+        that one answer is what makes a box six parts or one.</p>
+      <label class="row"><span>Fold limit</span>
+        <input type="number" id="in-fold" step="1" min="0" max="180"> <span style="flex:0 0 auto">°</span></label>
+      <label class="row"><span>Corner defect</span>
+        <input type="number" id="in-defect" value="8" step="1" min="0"> <span style="flex:0 0 auto">°</span></label>
+      <label class="row"><span>Patch defect</span>
+        <input type="number" id="in-total" value="15" step="1" min="0"> <span style="flex:0 0 auto">°</span></label>
+      <label class="row"><span>Compactness</span>
+        <input type="number" id="in-ratio" value="2.2" step="0.1" min="1"></label>
+      <h3>Joints</h3>
+      <p class="note" id="joint-note"></p>
+      <label class="row"><span>Glue tabs</span>
+        <select id="in-tabs">
+          <option value="auto">as the material wants</option>
+          <option value="on">on</option>
+          <option value="off">off — butt joints</option>
+        </select></label>
+      <label class="row"><span>Tab width</span>
+        <input type="number" id="in-tabw" step="1" min="0"> <span style="flex:0 0 auto" id="tabw-units">mm</span></label>
+      <label class="row"><span>Tab end angle</span>
+        <input type="number" id="in-taba" value="60" step="5" min="20" max="89"> <span style="flex:0 0 auto">°</span></label>
+
+      <h3>Nesting</h3>
+      <label class="row"><span>Nest angles</span>
+        <input type="number" id="in-rot" value="8" step="1" min="1" max="36"></label>
+      <label class="row"><span>Grain</span>
+        <select id="in-grain">
+          <option value="auto">as the stock says</option>
+          <option value="off">ignore — turn parts freely</option>
+          <option value="on">constrain to 0° / 180°</option>
+        </select></label>
+      <label class="row"><span>Open sheets</span>
+        <input type="number" id="in-open" value="0" step="1" min="0"></label>
+      <p class="note">How many of the most recent sheets a part may still be dropped onto.
+        0 means no limit, which is the default because it uses less material — on the 6 m
+        dome, unlimited took 38 sheets and a window of six took 43. Searching every sheet is
+        quadratic, so the window buys seconds with plywood. Measured, not guessed.</p>
+      <button class="btn primary" id="btn-run">Recompute</button>
+    </div>
+
+    <div class="tab" data-tab="pieces"><p class="note">No model loaded.</p></div>
+    <div class="tab" data-tab="seams"><p class="note">No model loaded.</p></div>
+
+    <div class="tab" data-tab="sweep">
+      <h3>Scale against waste</h3>
+      <p class="note">Stock size is fixed while the model grows, so each piece walks across
+        the sheet until it no longer fits and then splits, leaving a dead offcut. The result
+        is a sawtooth. Rows highlighted green are on the Pareto frontier — nothing else is
+        both bigger and cheaper. Rows in red dropped a part and are disqualified, not merely
+        annotated.</p>
+      <label class="row"><span>From</span><input type="number" id="sw-from" value="0.5" step="0.1"></label>
+      <label class="row"><span>To</span><input type="number" id="sw-to" value="4" step="0.1"></label>
+      <label class="row"><span>Step</span><input type="number" id="sw-step" value="0.1" step="0.01"></label>
+      <button class="btn primary" id="btn-sweep">Run sweep</button>
+      <button class="btn" id="btn-stop" disabled>Stop</button>
+      <progress id="sw-progress" value="0" max="1" hidden></progress>
+      <div id="sweep-out"></div>
+    </div>
+
+    <div class="tab" data-tab="export">
+      <h3>Files</h3>
+      <p class="note">Every sheet as SVG for a laser and DXF R12 for CAM, on separable
+        layers; a PDF with a measured scale bar on every page; and the assembly document.</p>
+      <div id="export-out"><p class="note">No model loaded.</p></div>
+    </div>
+  </aside>
+</main>
+
+<script type="importmap">
+{
+  "imports": {
+    "./js/app.js": "./js/app.js?v=2026-08-28.01.99a3a101",
+    "./js/assembly.js": "./js/assembly.js?v=2026-08-28.01.99a3a101",
+    "./js/dome.js": "./js/dome.js?v=2026-08-28.01.99a3a101",
+    "./js/dxf.js": "./js/dxf.js?v=2026-08-28.01.99a3a101",
+    "./js/labels.js": "./js/labels.js?v=2026-08-28.01.99a3a101",
+    "./js/materials.js": "./js/materials.js?v=2026-08-28.01.99a3a101",
+    "./js/mesh.js": "./js/mesh.js?v=2026-08-28.01.99a3a101",
+    "./js/nesting.js": "./js/nesting.js?v=2026-08-28.01.99a3a101",
+    "./js/package.js": "./js/package.js?v=2026-08-28.01.99a3a101",
+    "./js/pdf.js": "./js/pdf.js?v=2026-08-28.01.99a3a101",
+    "./js/pipeline.js": "./js/pipeline.js?v=2026-08-28.01.99a3a101",
+    "./js/seams.js": "./js/seams.js?v=2026-08-28.01.99a3a101",
+    "./js/segment.js": "./js/segment.js?v=2026-08-28.01.99a3a101",
+    "./js/sheetview.js": "./js/sheetview.js?v=2026-08-28.01.99a3a101",
+    "./js/split.js": "./js/split.js?v=2026-08-28.01.99a3a101",
+    "./js/svg.js": "./js/svg.js?v=2026-08-28.01.99a3a101",
+    "./js/sweep.js": "./js/sweep.js?v=2026-08-28.01.99a3a101",
+    "./js/tabs.js": "./js/tabs.js?v=2026-08-28.01.99a3a101",
+    "./js/unfold.js": "./js/unfold.js?v=2026-08-28.01.99a3a101"
+  }
+}
+</script>
+<script type="module" src="js/app.js?v=2026-08-28.01.99a3a101"></script>
+</body>
+</html>

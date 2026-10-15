@@ -1,0 +1,12 @@
+{
+  "name": "unfold-to-sheets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cut a 3D model into pieces that flatten, nest them onto sheet stock, mark the seams, and sweep the scale to find the size that wastes least",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "unfold": "node tools/unfold.mjs",
+    "serve": "python3 -m http.server 8778"
+  }
+}
