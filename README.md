@@ -487,3 +487,7 @@ And the original: **a rule that is necessary is not the same as a rule that is
 sufficient.** Segmentation needed four constraints, and each of the first three
 looked complete until the fourth failure showed up on a real model. The synthetic
 fixtures never found any of them; the bunny found all four.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).
