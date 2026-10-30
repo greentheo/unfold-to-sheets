@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { unfoldPatch, unfoldAll, boundaryLoops, polygonArea } from '../js/unfold.js';
 import { segmentByCurvature } from '../js/segment.js';
-import { edgeLength } from '../js/mesh.js';
+import { edgeLength, parseOBJ, buildMesh } from '../js/mesh.js';
 import { plate, cylinder, cone, box, sphere, chord } from './fixtures/shapes.mjs';
 
 const wholeMesh = (mesh, key = 'all') => ({
@@ -192,4 +192,20 @@ test('polygon area is orientation-independent', () => {
   const sq = [{ u: 0, v: 0 }, { u: 2, v: 0 }, { u: 2, v: 2 }, { u: 0, v: 2 }];
   assert.equal(polygonArea(sq), 4);
   assert.equal(polygonArea(sq.slice().reverse()), 4);
+});
+
+test('EXACT: a plate with a hole off to one side lines up with its outline, not its hole', () => {
+  // 200 x 100 with a 40 x 40 hole near one end, wound round it by hand. Its
+  // points' principal axes lean towards the hole; its outline's don't.
+  const obj = `v 0 0 0\nv 200 0 0\nv 200 100 0\nv 0 100 0\nv 20 30 0\nv 60 30 0\nv 60 70 0\nv 20 70 0
+f 1 2 6\nf 1 6 5\nf 2 3 7\nf 2 7 6\nf 3 4 8\nf 3 8 7\nf 4 1 5\nf 4 5 8\n`;
+  const mesh = buildMesh(parseOBJ(obj), { units: 'mm', name: 'holed' });
+  const flat = unfoldPatch(mesh, wholeMesh(mesh, 'holed'));
+  assert.equal(flat.holes.length, 1);
+  assert.ok(Math.abs(flat.width - 200) < 1e-9, `width ${flat.width}`);
+  assert.ok(Math.abs(flat.height - 100) < 1e-9, `height ${flat.height}`);
+  assert.ok(Math.abs(flat.flatArea - (20000 - 1600)) < 1e-6, `area ${flat.flatArea}`);
+  const us = flat.holes[0].map((p) => p.u), vs = flat.holes[0].map((p) => p.v);
+  assert.ok(Math.abs(Math.max(...us) - Math.min(...us) - 40) < 1e-9);
+  assert.ok(Math.abs(Math.max(...vs) - Math.min(...vs) - 40) < 1e-9);
 });
