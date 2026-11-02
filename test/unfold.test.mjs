@@ -195,9 +195,10 @@ test('polygon area is orientation-independent', () => {
 });
 
 test('EXACT: a plate with a hole off to one side lines up with its outline, not its hole', () => {
-  // 200 x 100 with a 40 x 40 hole near one end, wound round it by hand. Its
-  // points' principal axes lean towards the hole; its outline's don't.
-  const obj = `v 0 0 0\nv 200 0 0\nv 200 100 0\nv 0 100 0\nv 20 30 0\nv 60 30 0\nv 60 70 0\nv 20 70 0
+  // 200 x 100 with a 40 x 40 hole near one corner, wound round it by hand: off
+  // both axes, so its points' principal axes lean towards the hole (a hole
+  // centred across the plate cancels out and tilts nothing). Its outline's don't.
+  const obj = `v 0 0 0\nv 200 0 0\nv 200 100 0\nv 0 100 0\nv 20 10 0\nv 60 10 0\nv 60 50 0\nv 20 50 0
 f 1 2 6\nf 1 6 5\nf 2 3 7\nf 2 7 6\nf 3 4 8\nf 3 8 7\nf 4 1 5\nf 4 5 8\n`;
   const mesh = buildMesh(parseOBJ(obj), { units: 'mm', name: 'holed' });
   const flat = unfoldPatch(mesh, wholeMesh(mesh, 'holed'));
