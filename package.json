@@ -2,6 +2,7 @@
   "name": "unfold-to-sheets",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "description": "Cut a 3D model into pieces that flatten, nest them onto sheet stock, mark the seams, and sweep the scale to find the size that wastes least",
   "scripts": {
