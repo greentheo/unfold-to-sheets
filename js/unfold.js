@@ -309,8 +309,16 @@ export function unfoldPatch(mesh, patch, opts = {}) {
 
   // ── orientation, outline, folds ──
   const loops = boundaryLoops(mesh, faces);
-  const allPts = [...xy.values()];
-  const { cu, cv, cos, sin } = alignToPrincipalAxis(allPts);
+  // A piece with holes lines up with its OUTLINE. Every point counts in the
+  // principal axes, so a hole off to one side (a lightening hole, a window with
+  // fifty points round its corners) pulls them towards itself and the piece
+  // goes onto the sheet tilted. A piece without holes is lined up as before.
+  let alignBy = [...xy.values()];
+  if (loops.length > 1) {
+    const rings = loops.map((loop) => loop.map((step) => xy.get(step.vertex)));
+    alignBy = rings.reduce((a, b) => (polygonArea(b) > polygonArea(a) ? b : a));
+  }
+  const { cu, cv, cos, sin } = alignToPrincipalAxis(alignBy);
   const turn = (p) => ({ u: (p.u - cu) * cos - (p.v - cv) * sin, v: (p.u - cu) * sin + (p.v - cv) * cos });
   for (const [v, p] of xy) xy.set(v, turn(p));
 
@@ -346,8 +354,8 @@ export function unfoldPatch(mesh, patch, opts = {}) {
     }
   }
 
-  const us = allPts.length ? [...xy.values()].map((p) => p.u) : [0];
-  const vs = allPts.length ? [...xy.values()].map((p) => p.v) : [0];
+  const us = xy.size ? [...xy.values()].map((p) => p.u) : [0];
+  const vs = xy.size ? [...xy.values()].map((p) => p.v) : [0];
   const width = Math.max(...us) - Math.min(...us);
   const height = Math.max(...vs) - Math.min(...vs);
 
